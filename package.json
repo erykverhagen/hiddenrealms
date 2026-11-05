@@ -1,0 +1,8 @@
+{
+  "name": "hidden-realms",
+  "version": "0.5.0",
+  "private": true,
+  "type": "module",
+  "scripts": {"dev":"vite --host 0.0.0.0", "build":"vite build", "preview":"vite preview --host 0.0.0.0", "check":"node --check src/main.js && node --check src/camera.js && node --check src/levels.js"},
+  "devDependencies": {"vite":"^6.3.0"}
+}

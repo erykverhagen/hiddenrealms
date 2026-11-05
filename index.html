@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no" />
+<meta name="theme-color" content="#101e19" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Hidden Realms" />
+<link rel="apple-touch-icon" href="%BASE_URL%assets/icon-180.png" />
+<link rel="manifest" href="%BASE_URL%manifest.webmanifest" />
+<title>Hidden Realms · Blossom Village</title></head>
+<body><div id="app">
+<header class="topbar"><button class="icon-button" id="menu" aria-label="Levels">☰</button><div class="brand"><div class="brand-name">✦ Hidden Realms</div><div class="subtitle" id="subtitle">Spring • Level 1 • Blossom Village</div></div><div class="top-actions"><button id="hint" class="icon-button hint-button" aria-label="Hint">✧ <span>Hint</span></button></div></header>
+<main id="viewport" aria-label="Explore the illustrated fantasy world"><div id="world"><img id="scene" src="%BASE_URL%assets/blossom-village.jpg" alt="Fantasy spring village with castle, market, animals and magical details" draggable="false" /></div><div id="fx-layer" aria-hidden="true"></div><div id="found-meter"><span class="meter-gem">✦</span> <span id="found-count">0 / 10</span> <span class="meter-caption">found</span></div><div id="toast" role="status" aria-live="polite"></div><div class="camera-controls"><button id="zoom-in" aria-label="Zoom in">+</button><button id="zoom-out" aria-label="Zoom out">−</button><button id="fit" aria-label="Fit whole scene">⌖</button></div></main>
+<section class="treasure-panel"><div class="treasure-header"><div><div class="eyebrow">SPRING · CHAPTER I</div><h2>Treasures of Blossom Village</h2></div><div class="treasure-progress" id="progress-label">0 of 10</div></div><div id="treasure-list" class="treasure-list" aria-label="Objects to find"></div></section>
+<div class="modal-backdrop" id="modal" hidden><div class="modal-card"><div class="modal-accent">✦ THE HIDDEN REALMS ✦</div><h2 id="modal-title"></h2><p id="modal-body"></p><div id="modal-actions"></div></div></div>
+</div><script type="module" src="/src/main.js"></script></body></html>
