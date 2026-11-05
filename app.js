@@ -1,6 +1,6 @@
 (()=>{'use strict';
 const $=id=>document.getElementById(id);
-const W=1672,H=678,sceneURL='./assets/blossom-village.webp';
+const W=1672,H=678,sceneURL='./assets/blossom-village-large.webp';
 const objects=[
  {id:'owl',name:'Owl',awakened:'Moonwatcher',icon:'🦉',x:313,y:62,r:37,box:68},
  {id:'sword',name:'Ancient sword',awakened:'Starlight Blade',icon:'⚔️',x:116,y:422,r:36,box:65},
@@ -19,7 +19,7 @@ let pointers=new Map(),gesture=null,moved=false,pointerMoved=0,tapStart=null,las
 const camera={s:1,x:0,y:0,vx:0,vy:0,lastMove:0,momentum:0};
 const viewSize=()=>({w:v.clientWidth,h:v.clientHeight});
 const minZoom=()=>{const {w,h}=viewSize();return Math.max(w/W,h/H)};
-const maxZoom=()=>Math.max(minZoom(),Math.min(2.3,minZoom()*4));
+const maxZoom=()=>Math.max(minZoom(),Math.min(2.65,minZoom()*3.2));
 function paint(){world.style.transform=`translate3d(${camera.x}px,${camera.y}px,0) scale(${camera.s})`}
 function clamp(){const {w,h}=viewSize();camera.s=Math.min(maxZoom(),Math.max(minZoom(),camera.s));let sw=W*camera.s,sh=H*camera.s;camera.x=sw<=w?(w-sw)/2:Math.max(w-sw,Math.min(0,camera.x));camera.y=sh<=h?(h-sh)/2:Math.max(h-sh,Math.min(0,camera.y));paint()}
 function fit(){stopMotion();camera.s=minZoom();camera.x=(v.clientWidth-W*camera.s)/2;camera.y=(v.clientHeight-H*camera.s)/2;clamp()}
@@ -32,13 +32,22 @@ function zoomAnimated(f,cx=v.clientWidth/2,cy=v.clientHeight/2){const ns=Math.ma
 function glideTo(o){let ns=Math.max(camera.s,Math.min(maxZoom(),minZoom()*1.8)),c=viewSize();animateTo(ns,c.w/2-o.x*ns,c.h/2-o.y*ns,650)}
 function inertia(){cancelAnimationFrame(camera.momentum);let last=performance.now();function frame(now){let dt=Math.min(2.2,(now-last)/16.7);last=now;camera.vx*=Math.pow(.88,dt);camera.vy*=Math.pow(.88,dt);if(Math.hypot(camera.vx,camera.vy)<.14)return;let prevX=camera.x,prevY=camera.y;camera.x+=camera.vx*dt;camera.y+=camera.vy*dt;clamp();if(camera.x===prevX)camera.vx=0;if(camera.y===prevY)camera.vy=0;if(Math.hypot(camera.vx,camera.vy)>.14)camera.momentum=requestAnimationFrame(frame)}camera.momentum=requestAnimationFrame(frame)}
 function notice(txt){const n=$('notice');n.textContent=txt;n.classList.add('show');clearTimeout(noticeTimer);noticeTimer=setTimeout(()=>n.classList.remove('show'),2100)}
-function renderTreasures(){let container=$('treasure-track');container.replaceChildren();for(let o of objects){let done=found.has(o.id),b=document.createElement('button');b.className='treasure'+(done?' discovered':'');b.type='button';b.title=(done?o.awakened:o.name);b.setAttribute('aria-label',done?o.name+' found, transformed to '+o.awakened:'Find '+o.name);let sym=document.createElement('span');sym.className='glyph';sym.textContent=o.icon;let label=document.createElement('span');label.className='name';label.textContent=done?o.awakened:o.name;let seal=document.createElement('span');seal.className='seal';seal.textContent='✦';b.append(sym,label,seal);if(done){let a=document.createElement('span');a.className='awakened';a.textContent='AWAKENED';b.append(a)}b.addEventListener('click',()=>{if(done){glideTo(o);notice(o.awakened+' is watching over the village')}else notice('Search the illustration for '+o.name)});container.append(b)}$('found-count').textContent=found.size;$('found-label').textContent=found.size+' of '+objects.length+' discovered';$('progress-fill').style.width=100*found.size/objects.length+'%'}
-function spawnMagic(o,quiet=false){if(!quiet){let p=screenPoint(o);let ring=document.createElement('div');ring.className='reveal-ring';ring.style.cssText=`left:${p.x}px;top:${p.y}px;width:90px;height:90px`;effectLayer.append(ring);setTimeout(()=>ring.remove(),1100);for(let i=0;i<72;i++){let star=document.createElement('i'),a=Math.random()*Math.PI*2,d=35+Math.random()*125;star.className='particle'+(i%4===0?' pale':'');star.style.cssText=`left:${p.x}px;top:${p.y}px;--dx:${Math.cos(a)*d}px;--dy:${Math.sin(a)*d-35}px;--duration:${650+Math.random()*1100}ms`;effectLayer.append(star);setTimeout(()=>star.remove(),1850)}}
+function renderTreasures(){let container=$('treasure-track');container.replaceChildren();for(let o of objects){let done=found.has(o.id),b=document.createElement('button');b.className='treasure'+(done?' discovered':'');b.type='button';b.title=(done?o.awakened:o.name);b.setAttribute('aria-label',done?o.name+' found, transformed to '+o.awakened:'Find '+o.name);let sym=document.createElement('span');sym.className='glyph';sym.textContent='';sym.style.backgroundImage=`url('${sceneURL}')`;sym.style.backgroundSize=`${W}px ${H}px`;sym.style.backgroundPosition=`${43-o.x}px ${30-o.y}px`;sym.setAttribute('aria-hidden','true');let label=document.createElement('span');label.className='name';label.textContent=done?o.awakened:o.name;let seal=document.createElement('span');seal.className='seal';seal.textContent='✦';b.append(sym,label,seal);if(done){let a=document.createElement('span');a.className='awakened';a.textContent='AWAKENED';b.append(a)}b.addEventListener('click',()=>{if(done){glideTo(o);notice(o.awakened+' is watching over the village')}else notice('Search the illustration for '+o.name)});container.append(b)}$('found-count').textContent=found.size;$('found-label').textContent=found.size+' of '+objects.length+' discovered';$('progress-fill').style.width=100*found.size/objects.length+'%'}
+function spawnMagic(o,quiet=false){
+ if(!quiet){const p=screenPoint(o),flash=document.createElement('div');flash.className='discovery-flash';flash.style.cssText=`left:${p.x}px;top:${p.y}px`;effectLayer.append(flash);setTimeout(()=>flash.remove(),1050);
+ for(let i=0;i<105;i++){const star=document.createElement('i'),a=Math.random()*Math.PI*2,d=25+Math.random()*160;star.className='particle'+(i%3===0?' pale':'');star.style.cssText=`left:${p.x}px;top:${p.y}px;--dx:${Math.cos(a)*d}px;--dy:${Math.sin(a)*d-50}px;--duration:${650+Math.random()*1150}ms`;effectLayer.append(star);setTimeout(()=>star.remove(),1900)}}
  if(magicLayer.querySelector('[data-object="'+o.id+'"]'))return;
- // A magical, enhanced window of the actual discovered animal/object is left in the world.
- const box=o.box*1.18,cut=document.createElement('div');cut.className='magic-sprite'+(o.beast?' beast':'');cut.dataset.object=o.id;cut.style.cssText=`left:${o.x}px;top:${o.y}px;width:${box}px;height:${box}px`;
+ const box=o.box*(o.beast?1.62:1.33),sprite=document.createElement('div');sprite.className='magic-sprite magic-'+o.id+(o.beast?' beast':'');sprite.dataset.object=o.id;
+ sprite.style.cssText=`left:${o.x}px;top:${o.y}px;width:${box}px;height:${box}px`;
  const crop=document.createElement('div');crop.className='cutout';crop.style.backgroundImage=`url('${sceneURL}')`;crop.style.backgroundSize=`${W}px ${H}px`;crop.style.backgroundPosition=`${box/2-o.x}px ${box/2-o.y}px`;
- const aura=document.createElement('div');aura.className='aura';const rune=document.createElement('div');rune.className='rune';rune.textContent=o.beast?'ᛟ':'✧';cut.append(crop,aura,rune);if(o.beast){let eyes=document.createElement('div');eyes.className='eyes';cut.append(eyes)}magicLayer.append(cut);
+ sprite.append(crop);
+ // Animal-specific awakenings are integrated into the silhouette, without target rings.
+ if(o.beast){
+  const spectral=document.createElement('div');spectral.className='spectral-sheen';sprite.append(spectral);
+  const ornament=document.createElement('div');ornament.className='spirit-runes';ornament.textContent=o.id==='dog'?'ᚨ ᛟ ᚷ':o.id==='cat'?'ᚠ ᛉ ᚾ':o.id==='fox'?'ᚷ ᛟ ᛞ':'ᛟ ᚱ ᚠ';sprite.append(ornament);
+  const fireflies=document.createElement('div');fireflies.className='spirit-fireflies';fireflies.innerHTML='<i>✦</i><i>✧</i><i>✶</i><i>✦</i>';sprite.append(fireflies);
+ }else{const rune=document.createElement('div');rune.className='artifact-sigil';rune.textContent='✧ ✦ ✧';sprite.append(rune)}
+ magicLayer.append(sprite)
 }
 function findAt(cx,cy){let p=worldPoint(cx,cy);let closest=null,best=Infinity;for(let o of objects){if(found.has(o.id))continue;let d=Math.hypot(p.x-o.x,p.y-o.y);if(d<o.r&&d<best){best=d;closest=o}}if(!closest)return;found.add(closest.id);try{localStorage.setItem(storeKey,JSON.stringify([...found]))}catch(e){}spawnMagic(closest);renderTreasures();notice('✦ '+closest.name+' becomes '+closest.awakened);if(found.size===objects.length)setTimeout(()=>openModal('The Village Awakens','Every secret of Blossom Village has revealed its magic. You have completed the first illustrated chapter.'),1700)}
 function setLens(on,cx,cy){

@@ -2,3 +2,53 @@
 
 /* The loupe is gesture-driven: double-tap to enter, tap once to leave. */
 .viewport.lens-on{cursor:crosshair}.viewport.lens-on.dragging{cursor:crosshair}
+
+/* DELUXE ART DIRECTION: dark amethyst, filigree gold, parchment ivory */
+:root{--ink:#171025;--sage:#23182d;--gold:#f2d18e;--cream:#fff0db;--border:#bb945f}
+body,.app{background:#160e20}
+.hud{height:65px;background:linear-gradient(105deg,#1a1425 0%,#24162d 48%,#120f1f 100%);border-bottom:1px solid #f0cd80a6;box-shadow:0 3px 18px #100b1ca8;position:relative}
+.hud::after,.collection::before{content:'';position:absolute;left:14px;right:14px;height:1px;background:linear-gradient(90deg,transparent,#ebc985a8,transparent);bottom:3px;pointer-events:none}
+.icon-button{background:linear-gradient(145deg,#412744,#21182b);border:1px solid #e8c77d99;border-radius:11px;box-shadow:inset 0 1px 0 #f6dfbc36}
+.identity .eyebrow{color:#dfbd89;font-size:9px}
+.identity .place{color:#fff0d5;letter-spacing:.01em;font-size:25px}
+.level-tag{background:#3e293f;border-color:#dfb86f77;color:#f9d998}
+.counter b{color:#fff2dd}.counter-star{color:#ffd59a}
+.viewport{background:#1f1930}.vignette{box-shadow:inset 0 0 48px #170d2299;pointer-events:none}
+.scene-top{top:11px;left:12px;right:12px}.chapter-chip{background:#24152bd6;border-color:#e7c377a8;color:#ffedd1;box-shadow:0 4px 16px #180b2388}
+.lens-toggle,.camera-controls button{background:#201627e8;border:1px solid #e8c688bb;box-shadow:0 3px 12px #130b20aa}
+.lens-toggle[aria-pressed=true]{background:#b78d58;color:#1a1026}
+.gesture-help{background:#24152cbd;color:#f8dfb8;border:1px solid #e8c77a44;font-size:9px}
+.collection{height:192px;position:relative;background:linear-gradient(175deg,#33203b 0%,#211429 64%,#140f20);border-top:2px solid #eac481;box-shadow:0 -7px 28px #1b0c28b0;gap:10px}
+.collection::before{top:4px;bottom:auto}
+.collection-kicker{color:#d8ad73}.collection h2{color:#f9e7c9;font-size:23px}
+.treasure-track{gap:10px;scrollbar-color:#bc9469 #25162a}
+.treasure{background:linear-gradient(165deg,#422c4a,#291a32 64%,#1a152a);border:1px solid #bc985d9c;border-radius:11px;box-shadow:inset 0 1px 1px #f8d4a83d,0 3px 15px #0d0815a3}
+.treasure .glyph{font-size:32px}.treasure .name{color:#ffeace}
+.treasure.discovered{background:linear-gradient(150deg,#604269,#2d304e 75%,#22293e);border-color:#f3d58c;box-shadow:inset 0 0 20px #e7c9852c,0 0 15px #c28eec44}
+.treasure.discovered .glyph{filter:drop-shadow(0 0 8px #fae6ab)}
+.collection-progress{color:#e7d2aa}.progress{background:#463a4a}.progress>div{background:linear-gradient(90deg,#b68aff,#ffe2a2)}
+.loupe{border:6px solid #e9c382;box-shadow:0 0 0 3px #493051,0 6px 25px #130e1aca,0 0 26px #da9eff78}
+.notice{background:#23172ae9;border-color:#efca88;color:#ffeccb}
+.modal-card{background:radial-gradient(circle at top,#563254,#291b33 72%,#15101c);border-color:#ecc784}
+/* Transformation: silhouette-weighted colour and light, not a permanent target circle */
+.magic-sprite{border-radius:0;filter:drop-shadow(0 0 9px #fdf0b4) drop-shadow(0 0 23px #9a76e5);animation:spirit-arrive .8s ease-out forwards;mix-blend-mode:screen}
+.magic-sprite::after{display:none}
+.magic-sprite .cutout{border-radius:0;mask-image:radial-gradient(ellipse 49% 46% at center,#000 43%,#000b 69%,transparent 100%);-webkit-mask-image:radial-gradient(ellipse 49% 46% at center,#000 43%,#000b 69%,transparent 100%);filter:saturate(1.55) contrast(1.17) brightness(1.21) hue-rotate(10deg)}
+.magic-sprite.beast .cutout{filter:saturate(1.5) contrast(1.17) brightness(1.12) hue-rotate(22deg)}
+.spectral-sheen{position:absolute;inset:18% 16%;background:conic-gradient(from 30deg,transparent,#b6a7ff77,transparent,#ffe8a355,transparent);mask-image:radial-gradient(ellipse,black 10%,transparent 70%);animation:spirit-shift 5s ease-in-out infinite;mix-blend-mode:screen}
+.spirit-runes{position:absolute;left:8%;right:8%;top:30%;text-align:center;font-size:20px;letter-spacing:.6em;color:#ffe9b4;text-shadow:0 0 8px #f8d49b,0 0 19px #ae88ff;transform:rotate(-13deg);animation:spirit-breathe 2.8s infinite}
+.magic-dog .spirit-runes{color:#9cebf8}.magic-cat .spirit-runes{color:#f2c4ff}.magic-fox .spirit-runes{color:#d6f7b1}
+.spirit-fireflies{position:absolute;inset:0;pointer-events:none}.spirit-fireflies i{position:absolute;top:15%;left:13%;font-style:normal;color:#fff1a2;text-shadow:0 0 10px #ffda84;animation:float 3s ease-in-out infinite}.spirit-fireflies i:nth-child(2){left:84%;top:28%;animation-delay:-.7s}.spirit-fireflies i:nth-child(3){left:32%;top:80%;animation-delay:-1.2s}.spirit-fireflies i:nth-child(4){left:73%;top:74%;animation-delay:-1.8s}
+.artifact-sigil{position:absolute;left:0;right:0;top:28%;text-align:center;color:#fff0ad;letter-spacing:12px;text-shadow:0 0 15px #ffd598;font-size:17px;animation:spirit-breathe 2.6s infinite}
+.discovery-flash{position:absolute;width:30px;height:30px;border-radius:50%;transform:translate(-50%,-50%);background:radial-gradient(circle,#fff8dc 0%,#f0d6ff 20%,#b88ef77a 45%,transparent 70%);animation:discovery-pop 1s ease-out forwards;pointer-events:none}
+@keyframes discovery-pop{from{opacity:1;scale:.25}to{opacity:0;scale:14}}
+@keyframes spirit-shift{50%{transform:rotate(50deg) scale(1.12)}}
+@keyframes spirit-breathe{50%{opacity:.46;filter:brightness(1.6);transform:rotate(-7deg)}}
+@media(max-width:640px){.hud{height:58px}.identity .place{font-size:19px}.collection{height:159px;padding:11px 10px max(9px,env(safe-area-inset-bottom));gap:8px}.collection h2{font-size:19px}.treasure{min-width:95px;max-width:95px;min-height:80px}.gesture-help{font-size:7px}.chapter-chip{font-size:11px}}
+@media(max-height:650px){.collection{height:137px}.collection h2{font-size:16px}.treasure{min-height:69px}.collection-top{align-items:center}}
+
+/* In-world collectible portraits instead of emoji placeholders. */
+.treasure .glyph{display:block;width:86px;height:52px;border-radius:8px;background-repeat:no-repeat;border:1px solid #eed09a80;box-shadow:inset 0 0 12px #2b153795,0 3px 9px #0e0b1680;filter:contrast(1.13) saturate(1.16);flex:none}
+.treasure.discovered .glyph{filter:saturate(1.55) brightness(1.18) drop-shadow(0 0 6px #d7a8ff)}
+.treasure{padding:5px 6px;gap:3px}.treasure .name{font-size:11px}
+@media(max-width:640px){.treasure .glyph{width:78px;height:47px}.treasure{min-height:82px}}
