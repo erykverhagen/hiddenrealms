@@ -1,62 +1,123 @@
-class Camera {
- constructor(view,world,w,h){this.view=view;this.world=world;this.w=w;this.h=h;this.scale=1;this.x=0;this.y=0;this.pointerMap=new Map();this.gesture=null;this.start=null;this.onTap=null;this.onChange=null;this.attach();this.fit();}
- get size(){return {w:this.view.clientWidth,h:this.view.clientHeight}}
- paint(){this.world.style.transform=`translate3d(${this.x}px,${this.y}px,0) scale(${this.scale})`;this.onChange?.()}
- clamp(){let {w,h}=this.size;let min=Math.min(w/this.w,h/this.h)*.65;this.scale=Math.min(5,Math.max(min,this.scale));this.x=this.scale*this.w<=w?(w-this.scale*this.w)/2:Math.max(w-this.scale*this.w,Math.min(0,this.x));this.y=this.scale*this.h<=h?(h-this.scale*this.h)/2:Math.max(h-this.scale*this.h,Math.min(0,this.y));this.paint()}
- fit(){let {w,h}=this.size;if(!w||!h)return;this.scale=Math.min(w/this.w,h/this.h);this.x=(w-this.scale*this.w)/2;this.y=(h-this.scale*this.h)/2;this.clamp()}
- zoom(f,cx=this.size.w/2,cy=this.size.h/2){let old=this.scale;this.scale*=f;let ratio=this.scale/old;this.x=cx-(cx-this.x)*ratio;this.y=cy-(cy-this.y)*ratio;this.clamp()}
- centerOn(px,py,minScale=.9){let {w,h}=this.size;this.scale=Math.max(this.scale,minScale);this.x=w/2-px*this.scale;this.y=h/2-py*this.scale;this.clamp()}
- toWorld(clientX,clientY){const r=this.view.getBoundingClientRect();return {x:(clientX-r.left-this.x)/this.scale,y:(clientY-r.top-this.y)/this.scale}}
- toScreen(x,y){return {x:this.x+x*this.scale,y:this.y+y*this.scale}}
- attach(){const v=this.view;
- v.addEventListener('pointerdown',e=>{if(e.target.closest('button'))return;v.setPointerCapture(e.pointerId);this.pointerMap.set(e.pointerId,{x:e.clientX,y:e.clientY,sx:e.clientX,sy:e.clientY});if(this.pointerMap.size===1)this.start={x:e.clientX,y:e.clientY,moved:false,multitouch:false};if(this.pointerMap.size===2){const a=[...this.pointerMap.values()],r=v.getBoundingClientRect(),cx=(a[0].x+a[1].x)/2-r.left,cy=(a[0].y+a[1].y)/2-r.top;this.start.multitouch=true;this.gesture={distance:Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y),scale:this.scale,wx:(cx-this.x)/this.scale,wy:(cy-this.y)/this.scale}}});
- v.addEventListener('pointermove',e=>{const p=this.pointerMap.get(e.pointerId);if(!p)return;const dx=e.clientX-p.x,dy=e.clientY-p.y;p.x=e.clientX;p.y=e.clientY;if(this.start&&Math.hypot(e.clientX-p.sx,e.clientY-p.sy)>9)this.start.moved=true;if(this.pointerMap.size===2&&this.gesture){const a=[...this.pointerMap.values()],r=v.getBoundingClientRect(),cx=(a[0].x+a[1].x)/2-r.left,cy=(a[0].y+a[1].y)/2-r.top;this.scale=this.gesture.scale*Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y)/Math.max(1,this.gesture.distance);this.x=cx-this.gesture.wx*this.scale;this.y=cy-this.gesture.wy*this.scale}else if(this.pointerMap.size===1){this.x+=dx;this.y+=dy}this.clamp()});
- const end=(e,cancel=false)=>{const p=this.pointerMap.get(e.pointerId);if(!p)return;const single=this.pointerMap.size===1;const moved=Math.hypot(e.clientX-p.sx,e.clientY-p.sy)>10;const doTap=!cancel&&single&&!moved&&!this.start?.moved&&!this.start?.multitouch;this.pointerMap.delete(e.pointerId);if(this.pointerMap.size<2)this.gesture=null;if(doTap)this.onTap?.(this.toWorld(e.clientX,e.clientY));if(this.pointerMap.size===0)this.start=null};
- v.addEventListener('pointerup',e=>end(e));v.addEventListener('pointercancel',e=>end(e,true));v.addEventListener('wheel',e=>{e.preventDefault();const r=v.getBoundingClientRect();this.zoom(e.deltaY<0?1.18:1/1.18,e.clientX-r.left,e.clientY-r.top)},{passive:false});
- v.addEventListener('dblclick',e=>{const r=v.getBoundingClientRect();this.zoom(1.5,e.clientX-r.left,e.clientY-r.top)});
- this.observer=new ResizeObserver(()=>this.clamp());this.observer.observe(v)
+(()=>{'use strict';
+const $=id=>document.getElementById(id);
+const W=1672,H=678,sceneURL='./assets/blossom-village.webp';
+const objects=[
+ {id:'owl',name:'Owl',awakened:'Moonwatcher',icon:'🦉',x:313,y:62,r:37,box:68},
+ {id:'sword',name:'Ancient sword',awakened:'Starlight Blade',icon:'⚔️',x:116,y:422,r:36,box:65},
+ {id:'mushroom',name:'Red mushroom',awakened:'Embercap',icon:'🍄',x:160,y:491,r:37,box:60},
+ {id:'lute',name:'Lute',awakened:'Songweaver',icon:'🎻',x:452,y:451,r:43,box:67},
+ {id:'cat',name:'Village cat',awakened:'Fierce Feline',icon:'🐈',x:721,y:432,r:40,box:85,beast:true},
+ {id:'dog',name:'Sleeping dog',awakened:'Mystical Hound',icon:'🐕',x:531,y:553,r:63,box:116,beast:true},
+ {id:'shield',name:'Golden shield',awakened:'Aegis of Dawn',icon:'🛡️',x:772,y:535,r:40,box:74},
+ {id:'fox',name:'Fox',awakened:'Spirit Fox',icon:'🦊',x:1451,y:462,r:43,box:77,beast:true},
+ {id:'deer',name:'Forest deer',awakened:'Stag of Stars',icon:'🦌',x:1563,y:332,r:42,box:79,beast:true},
+ {id:'lantern',name:'Lantern',awakened:'Everflame',icon:'🏮',x:1596,y:562,r:43,box:70}
+];
+const storeKey='hidden-realms-deluxe-1',v=$('viewport'),world=$('world'),effectLayer=$('effects'),magicLayer=$('transform-layer');
+let found=new Set();try{found=new Set(JSON.parse(localStorage.getItem(storeKey)||'[]'))}catch(e){}
+let pointers=new Map(),gesture=null,moved=false,pointerMoved=0,tapStart=null,lastTap=null,pendingTapTimer=null,lensEnabled=false,animation=0,noticeTimer=0;
+const camera={s:1,x:0,y:0,vx:0,vy:0,lastMove:0,momentum:0};
+const viewSize=()=>({w:v.clientWidth,h:v.clientHeight});
+const minZoom=()=>{const {w,h}=viewSize();return Math.max(w/W,h/H)};
+const maxZoom=()=>Math.max(minZoom(),Math.min(2.3,minZoom()*4));
+function paint(){world.style.transform=`translate3d(${camera.x}px,${camera.y}px,0) scale(${camera.s})`}
+function clamp(){const {w,h}=viewSize();camera.s=Math.min(maxZoom(),Math.max(minZoom(),camera.s));let sw=W*camera.s,sh=H*camera.s;camera.x=sw<=w?(w-sw)/2:Math.max(w-sw,Math.min(0,camera.x));camera.y=sh<=h?(h-sh)/2:Math.max(h-sh,Math.min(0,camera.y));paint()}
+function fit(){stopMotion();camera.s=minZoom();camera.x=(v.clientWidth-W*camera.s)/2;camera.y=(v.clientHeight-H*camera.s)/2;clamp()}
+function stopMotion(){cancelAnimationFrame(camera.momentum);cancelAnimationFrame(animation);camera.vx=camera.vy=0}
+function worldPoint(cx,cy){let b=v.getBoundingClientRect();return{x:(cx-b.left-camera.x)/camera.s,y:(cy-b.top-camera.y)/camera.s}}
+function screenPoint(o){return{x:camera.x+o.x*camera.s,y:camera.y+o.y*camera.s}}
+function setZoom(ns,cx=v.clientWidth/2,cy=v.clientHeight/2){let old=camera.s;ns=Math.min(maxZoom(),Math.max(minZoom(),ns));camera.s=ns;camera.x=cx-(cx-camera.x)*ns/old;camera.y=cy-(cy-camera.y)*ns/old;clamp()}
+function animateTo(ns,nx,ny,duration=430){stopMotion();const init={s:camera.s,x:camera.x,y:camera.y},start=performance.now();function step(now){let t=Math.min(1,(now-start)/duration),e=1-Math.pow(1-t,4);camera.s=init.s+(ns-init.s)*e;camera.x=init.x+(nx-init.x)*e;camera.y=init.y+(ny-init.y)*e;clamp();if(t<1)animation=requestAnimationFrame(step)}animation=requestAnimationFrame(step)}
+function zoomAnimated(f,cx=v.clientWidth/2,cy=v.clientHeight/2){const ns=Math.max(minZoom(),Math.min(maxZoom(),camera.s*f)),ratio=ns/camera.s;animateTo(ns,cx-(cx-camera.x)*ratio,cy-(cy-camera.y)*ratio)}
+function glideTo(o){let ns=Math.max(camera.s,Math.min(maxZoom(),minZoom()*1.8)),c=viewSize();animateTo(ns,c.w/2-o.x*ns,c.h/2-o.y*ns,650)}
+function inertia(){cancelAnimationFrame(camera.momentum);let last=performance.now();function frame(now){let dt=Math.min(2.2,(now-last)/16.7);last=now;camera.vx*=Math.pow(.88,dt);camera.vy*=Math.pow(.88,dt);if(Math.hypot(camera.vx,camera.vy)<.14)return;let prevX=camera.x,prevY=camera.y;camera.x+=camera.vx*dt;camera.y+=camera.vy*dt;clamp();if(camera.x===prevX)camera.vx=0;if(camera.y===prevY)camera.vy=0;if(Math.hypot(camera.vx,camera.vy)>.14)camera.momentum=requestAnimationFrame(frame)}camera.momentum=requestAnimationFrame(frame)}
+function notice(txt){const n=$('notice');n.textContent=txt;n.classList.add('show');clearTimeout(noticeTimer);noticeTimer=setTimeout(()=>n.classList.remove('show'),2100)}
+function renderTreasures(){let container=$('treasure-track');container.replaceChildren();for(let o of objects){let done=found.has(o.id),b=document.createElement('button');b.className='treasure'+(done?' discovered':'');b.type='button';b.title=(done?o.awakened:o.name);b.setAttribute('aria-label',done?o.name+' found, transformed to '+o.awakened:'Find '+o.name);let sym=document.createElement('span');sym.className='glyph';sym.textContent=o.icon;let label=document.createElement('span');label.className='name';label.textContent=done?o.awakened:o.name;let seal=document.createElement('span');seal.className='seal';seal.textContent='✦';b.append(sym,label,seal);if(done){let a=document.createElement('span');a.className='awakened';a.textContent='AWAKENED';b.append(a)}b.addEventListener('click',()=>{if(done){glideTo(o);notice(o.awakened+' is watching over the village')}else notice('Search the illustration for '+o.name)});container.append(b)}$('found-count').textContent=found.size;$('found-label').textContent=found.size+' of '+objects.length+' discovered';$('progress-fill').style.width=100*found.size/objects.length+'%'}
+function spawnMagic(o,quiet=false){if(!quiet){let p=screenPoint(o);let ring=document.createElement('div');ring.className='reveal-ring';ring.style.cssText=`left:${p.x}px;top:${p.y}px;width:90px;height:90px`;effectLayer.append(ring);setTimeout(()=>ring.remove(),1100);for(let i=0;i<72;i++){let star=document.createElement('i'),a=Math.random()*Math.PI*2,d=35+Math.random()*125;star.className='particle'+(i%4===0?' pale':'');star.style.cssText=`left:${p.x}px;top:${p.y}px;--dx:${Math.cos(a)*d}px;--dy:${Math.sin(a)*d-35}px;--duration:${650+Math.random()*1100}ms`;effectLayer.append(star);setTimeout(()=>star.remove(),1850)}}
+ if(magicLayer.querySelector('[data-object="'+o.id+'"]'))return;
+ // A magical, enhanced window of the actual discovered animal/object is left in the world.
+ const box=o.box*1.18,cut=document.createElement('div');cut.className='magic-sprite'+(o.beast?' beast':'');cut.dataset.object=o.id;cut.style.cssText=`left:${o.x}px;top:${o.y}px;width:${box}px;height:${box}px`;
+ const crop=document.createElement('div');crop.className='cutout';crop.style.backgroundImage=`url('${sceneURL}')`;crop.style.backgroundSize=`${W}px ${H}px`;crop.style.backgroundPosition=`${box/2-o.x}px ${box/2-o.y}px`;
+ const aura=document.createElement('div');aura.className='aura';const rune=document.createElement('div');rune.className='rune';rune.textContent=o.beast?'ᛟ':'✧';cut.append(crop,aura,rune);if(o.beast){let eyes=document.createElement('div');eyes.className='eyes';cut.append(eyes)}magicLayer.append(cut);
+}
+function findAt(cx,cy){let p=worldPoint(cx,cy);let closest=null,best=Infinity;for(let o of objects){if(found.has(o.id))continue;let d=Math.hypot(p.x-o.x,p.y-o.y);if(d<o.r&&d<best){best=d;closest=o}}if(!closest)return;found.add(closest.id);try{localStorage.setItem(storeKey,JSON.stringify([...found]))}catch(e){}spawnMagic(closest);renderTreasures();notice('✦ '+closest.name+' becomes '+closest.awakened);if(found.size===objects.length)setTimeout(()=>openModal('The Village Awakens','Every secret of Blossom Village has revealed its magic. You have completed the first illustrated chapter.'),1700)}
+function setLens(on,cx,cy){
+ lensEnabled=on; $('lens-toggle').setAttribute('aria-pressed',String(on));v.classList.toggle('lens-on',on);
+ if(on){let b=v.getBoundingClientRect();refreshLoupe(cx??b.left+b.width/2,cy??b.top+b.height/2);notice('Magnifier on · tap once to close')}
+ else {$('loupe').classList.remove('visible');notice('Magnifier off')}
+}
+function refreshLoupe(cx,cy){
+ const loupe=$('loupe'),glass=$('loupe-glass');if(!lensEnabled){loupe.classList.remove('visible');return}
+ const b=v.getBoundingClientRect(),sx=cx-b.left,sy=cy-b.top;
+ if(sx<0||sy<0||sx>b.width||sy>b.height){loupe.classList.remove('visible');return}
+ const p=worldPoint(cx,cy),mag=Math.max(camera.s*2.25,.95),diam=148;
+ // The lens samples the same source pixels as the world at an enlarged scale.
+ glass.style.backgroundImage=`url('${sceneURL}')`;
+ glass.style.backgroundSize=`${W*mag}px ${H*mag}px`;
+ glass.style.backgroundPosition=`${diam/2-p.x*mag}px ${diam/2-p.y*mag}px`;
+ loupe.style.left=sx+'px';loupe.style.top=sy+'px';loupe.classList.add('visible');
+}
+function pointerdown(e){
+ if(e.target.closest('button'))return;
+ stopMotion();v.setPointerCapture(e.pointerId);
+ pointers.set(e.pointerId,{x:e.clientX,y:e.clientY,ox:e.clientX,oy:e.clientY});
+ if(pointers.size===1){tapStart={x:e.clientX,y:e.clientY,time:performance.now(),multi:false};moved=false;pointerMoved=0;camera.lastMove=performance.now();if(lensEnabled)refreshLoupe(e.clientX,e.clientY)}
+ if(pointers.size===2){
+  clearTimeout(pendingTapTimer);pendingTapTimer=null;lastTap=null;
+  tapStart.multi=true;
+  let pts=[...pointers.values()],b=v.getBoundingClientRect(),cx=(pts[0].x+pts[1].x)/2-b.left,cy=(pts[0].y+pts[1].y)/2-b.top;
+  gesture={distance:Math.hypot(pts[0].x-pts[1].x,pts[0].y-pts[1].y),scale:camera.s,wx:(cx-camera.x)/camera.s,wy:(cy-camera.y)/camera.s};moved=true;
  }
 }
-
-// Object coordinates are measured against the 1672×685 illustration, not screen pixels.
-// Each additional illustrated level can be registered here as an independent data module.
-const levels = [
-  {id:1,title:'Blossom Village',season:'Spring',chapter:1,image:'assets/blossom-village.jpg',width:1672,height:685,
-   objects:[
-    {name:'Owl',icon:'🦉',x:315,y:60,radius:38},
-    {name:'Sword',icon:'⚔️',x:114,y:422,radius:36},
-    {name:'Red mushroom',icon:'🍄',x:169,y:491,radius:36},
-    {name:'Lute',icon:'🎻',x:454,y:453,radius:40},
-    {name:'Cat',icon:'🐈',x:722,y:427,radius:39},
-    {name:'Sleeping dog',icon:'🐕',x:533,y:550,radius:42},
-    {name:'Golden shield',icon:'🛡️',x:772,y:534,radius:40},
-    {name:'Fox',icon:'🦊',x:1453,y:460,radius:40},
-    {name:'Deer',icon:'🦌',x:1562,y:326,radius:40},
-    {name:'Lantern',icon:'🏮',x:1595,y:564,radius:38}
-   ]}
-];
-const levelPlan = Array.from({length:100},(_,i)=>({level:i+1,season:['Spring','Summer','Autumn','Winter'][Math.floor(i/25)],objects:10+5*Math.floor(i/10),seasonIntensity:1-Math.abs(i%25-12)/12}));
-const getLevel = (n)=>levels.find(l=>l.id===n);
-
-
-const $=id=>document.getElementById(id);
-const level=getLevel(1);
-const storageKey=`hidden-realms-level-${level.id}-found`;
-let found=new Set();
-try{found=new Set(JSON.parse(localStorage.getItem(storageKey)||'[]'))}catch{}
-const camera=new Camera($('viewport'),$('world'),level.width,level.height);
-let toastTimeout;
-function toast(s){const e=$('toast');e.textContent=s;e.classList.add('visible');clearTimeout(toastTimeout);toastTimeout=setTimeout(()=>e.classList.remove('visible'),1900)}
-function render(){let container=$('treasure-list');container.replaceChildren();level.objects.forEach((item,i)=>{let card=document.createElement('button');card.type='button';card.className='treasure-card'+(found.has(i)?' completed':'');card.setAttribute('aria-label',item.name+(found.has(i)?', found':''));card.innerHTML=`<span class="treasure-icon"></span><span class="treasure-name"></span><span class="treasure-check">✦</span>`;card.querySelector('.treasure-icon').textContent=item.icon;card.querySelector('.treasure-name').textContent=item.name;card.addEventListener('click',()=>{if(found.has(i))return;toast('Look for '+item.name+' in the picture')});container.append(card)});$('found-count').textContent=`${found.size} / ${level.objects.length}`;$('progress-label').textContent=`${found.size} of ${level.objects.length}`}
-function sparkle(x,y){const pos=camera.toScreen(x,y),layer=$('fx-layer');const glow=document.createElement('div');glow.className='magic-flash';glow.style.left=pos.x+'px';glow.style.top=pos.y+'px';layer.append(glow);setTimeout(()=>glow.remove(),950);for(let i=0;i<46;i++){const a=i*2.399+Math.random()*.55,d=28+Math.random()*110,star=document.createElement('i');star.className='fairy-particle';star.style.left=pos.x+'px';star.style.top=pos.y+'px';star.style.setProperty('--dx',Math.cos(a)*d+'px');star.style.setProperty('--dy',(Math.sin(a)*d-25)+'px');star.style.setProperty('--t',(650+Math.random()*800)+'ms');star.style.width=star.style.height=(2+Math.random()*5)+'px';layer.append(star);setTimeout(()=>star.remove(),1550)}}
-function onTap(p){let closest=-1,dist=Infinity;level.objects.forEach((o,i)=>{const d=Math.hypot(o.x-p.x,o.y-p.y);if(!found.has(i)&&d<o.radius&&d<dist){dist=d;closest=i}});if(closest<0)return;const obj=level.objects[closest];found.add(closest);try{localStorage.setItem(storageKey,JSON.stringify([...found]))}catch{}sparkle(obj.x,obj.y);render();toast(`✦ ${obj.name} discovered`);if(found.size===level.objects.length)setTimeout(()=>modal('The Village Remembers','All ten treasures discovered! Level 1 is complete. Additional illustrated worlds are in development.','Keep exploring',closeModal),950)}
-camera.onTap=onTap;
-$('zoom-in').onclick=()=>camera.zoom(1.45);$('zoom-out').onclick=()=>camera.zoom(1/1.45);$('fit').onclick=()=>camera.fit();
-$('hint').onclick=()=>{const obj=level.objects.find((o,i)=>!found.has(i));if(!obj){toast('Every treasure discovered!');return}camera.centerOn(obj.x,obj.y,Math.max(.9,camera.scale));toast(`Look carefully near the center for the ${obj.name}`)};
-function modal(title,body,action,onClick){$('modal-title').textContent=title;$('modal-body').textContent=body;$('modal-actions').replaceChildren();let b=document.createElement('button');b.className='primary-button';b.textContent=action;b.onclick=onClick;$('modal-actions').append(b);$('modal').hidden=false}
-function closeModal(){$('modal').hidden=true}
-$('menu').onclick=()=>modal('100 Levels · Four Seasons',`The full journey is planned: ${levelPlan.length} levels, 25 per season, ranging from 10 to 55 objects per level. The illustrated playable build currently includes Blossom Village, Level 1.`,`Return to Blossom Village`,closeModal);
-window.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
-const scene=$('scene');scene.addEventListener('error',()=>modal('Artwork unavailable','The illustration did not load. Check that the assets folder was uploaded with the app.','Close',closeModal));
-render();camera.fit();
-if('serviceWorker' in navigator&&location.protocol.startsWith('http'))window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
+function pointermove(e){
+ let p=pointers.get(e.pointerId);
+ if(!p){if(e.pointerType==='mouse'&&lensEnabled)refreshLoupe(e.clientX,e.clientY);return}
+ let dx=e.clientX-p.x,dy=e.clientY-p.y;p.x=e.clientX;p.y=e.clientY;
+ pointerMoved=Math.max(pointerMoved,Math.hypot(p.x-p.ox,p.y-p.oy));if(pointerMoved>8)moved=true;
+ if(pointers.size===2&&gesture){
+  let pts=[...pointers.values()],b=v.getBoundingClientRect(),cx=(pts[0].x+pts[1].x)/2-b.left,cy=(pts[0].y+pts[1].y)/2-b.top,s=Math.hypot(pts[0].x-pts[1].x,pts[0].y-pts[1].y)/Math.max(1,gesture.distance);
+  camera.s=Math.min(maxZoom(),Math.max(minZoom(),gesture.scale*s));camera.x=cx-gesture.wx*camera.s;camera.y=cy-gesture.wy*camera.s;clamp();
+ }else if(lensEnabled){refreshLoupe(e.clientX,e.clientY)}
+ else if(pointers.size===1){
+  camera.x+=dx;camera.y+=dy;clamp();let now=performance.now(),dt=Math.max(8,now-camera.lastMove);
+  camera.vx=.5*camera.vx+.5*dx*16.7/dt;camera.vy=.5*camera.vy+.5*dy*16.7/dt;camera.lastMove=now;
+ }
+}
+function pointerend(e){
+ let p=pointers.get(e.pointerId);if(!p)return;
+ const single=pointers.size===1,valid=single&&!moved&&!tapStart?.multi;
+ pointers.delete(e.pointerId);if(pointers.size<2)gesture=null;
+ if(!pointers.size){
+  if(valid&&e.type==='pointerup'){
+   const now=performance.now();
+   if(lensEnabled){
+    // One tap leaves loupe mode. It never accidentally collects an object.
+    clearTimeout(pendingTapTimer);pendingTapTimer=null;lastTap=null;setLens(false);
+   }else if(lastTap&&now-lastTap.time<340&&Math.hypot(e.clientX-lastTap.x,e.clientY-lastTap.y)<36){
+    // Double tap turns on the loupe at precisely the tapped location.
+    clearTimeout(pendingTapTimer);pendingTapTimer=null;lastTap=null;setLens(true,e.clientX,e.clientY);
+   }else{
+    // Delay a single discovery tap just enough to distinguish a double tap.
+    lastTap={time:now,x:e.clientX,y:e.clientY};
+    clearTimeout(pendingTapTimer);
+    const cx=e.clientX,cy=e.clientY;
+    pendingTapTimer=setTimeout(()=>{lastTap=null;pendingTapTimer=null;if(!lensEnabled)findAt(cx,cy)},345);
+   }
+  }else if(moved&&single&&!lensEnabled){clearTimeout(pendingTapTimer);lastTap=null;inertia()}
+  tapStart=null;moved=false;
+ }
+}
+function openModal(title,body){$('modal-title').textContent=title;$('modal-body').textContent=body;$('modal').hidden=false}
+$('modal-close').onclick=()=>$('modal').hidden=true;
+$('menu').onclick=()=>openModal('A world in four seasons','Blossom Village Deluxe is the fully interactive first level. The complete adventure is planned as 100 levels, with 25 each for spring, summer, autumn and winter, and more discoveries every ten levels.');
+$('hint').onclick=()=>{let o=objects.find(o=>!found.has(o.id));if(!o){notice('You found every treasure');return}glideTo(o);notice('A whisper draws you toward the '+o.name)};
+$('zoom-in').onclick=()=>zoomAnimated(1.45);$('zoom-out').onclick=()=>zoomAnimated(1/1.45);$('reset').onclick=()=>{let s=minZoom();animateTo(s,(v.clientWidth-W*s)/2,(v.clientHeight-H*s)/2)};
+$('lens-toggle').onclick=()=>setLens(!lensEnabled);
+v.addEventListener('pointerdown',pointerdown);v.addEventListener('pointermove',pointermove);v.addEventListener('pointerup',pointerend);v.addEventListener('pointercancel',pointerend);v.addEventListener('pointerleave',e=>{if(e.pointerType==='mouse'&&!pointers.size&&lensEnabled)$('loupe').classList.remove('visible')});
+v.addEventListener('wheel',e=>{e.preventDefault();let b=v.getBoundingClientRect();zoomAnimated(e.deltaY<0?1.18:1/1.18,e.clientX-b.left,e.clientY-b.top)},{passive:false});
+v.addEventListener('dblclick',e=>e.preventDefault());
+window.addEventListener('resize',()=>{let p={x:(v.clientWidth/2-camera.x)/camera.s,y:(v.clientHeight/2-camera.y)/camera.s};camera.s=Math.max(minZoom(),Math.min(maxZoom(),camera.s));camera.x=v.clientWidth/2-p.x*camera.s;camera.y=v.clientHeight/2-p.y*camera.s;clamp()});
+for(let o of objects)if(found.has(o.id))spawnMagic(o,true);renderTreasures();
+$('scene').addEventListener('load',fit);$('scene').addEventListener('error',()=>openModal('The illustration could not load','Check that the assets folder sits next to index.html when hosting the app.'));
+fit();if('serviceWorker' in navigator&&/^https?:/.test(location.protocol))window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
+})();
